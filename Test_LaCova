@@ -1,0 +1,7 @@
+"""
+Created on Fri Jan 26 15:02:19 2018
+@author: khalida Douibi
+"""
+import numpy as np
+from Load_datasets import SimpleCross,Yeast,Scene,Emotions
+from LaCova_class import Lacova
