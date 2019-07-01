@@ -1,0 +1,175 @@
+Created on Tue Jan 16 15:30:07 2018
+@author: Khalida Douibi
+"""
+import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from skmultilearn.problem_transform import BinaryRelevance 
+from skmultilearn.problem_transform import LabelPowerset
+from collections import Counter
+import math as m
+
+class Lacova(object):
+
+    def __init__(self, Nlabels, max_depth, minNoObj):
+        self.Nlabels=Nlabels
+        self.max_depth=max_depth
+        self.minNoObj=minNoObj
+    
+    def fit(self, Train, Y_train):
+        train=np.concatenate((Train, Y_train), axis=1)
+        self.Attr=Train.shape[1] # features
+        self.root = self.FindBestSplit_Opti(train)   
+        self.split_f(self.root, 1) #1: initialisation depth 
+        self.DOT_graph_tree(self.root)
+        return self
+            
+    def FindBestSplit_Opti(self, D):
+        
+        minNoObj=self.minNoObj
+        Attr=self.Attr  #features
+        threshold=Threshold_lacova(D[:,Attr:])#self.threshold, the threshold should be computed based on labels
+        Cut_Best=[]
+        Di_best=[]
+        labels_Leaf=[]
+        
+        #calculate the covariance matrix of D to decide if we make another split or apply single DT if the labels are indepandant or make the node as terminal(leaf)
+        [SumOfCovariance,MatrixOfCovariance,SumOfVariance,VarianceElements]=self.Covariance(D[:,Attr:])
+        if SumOfVariance==0 or len(D)<minNoObj:#labels are independant
+                     #return leaf with relative frequencies of labels/stop growing the tree
+#                    print('return leaf with relative labels /SumOfVariance==0 or len(D)<minNoObj or best_feat== -1')
+#                    labels_Leaf=[]#self.Freq(D)#va etre faite dans split_f function                 
+                    fbest=-2 #dans la fonction split_f quand il trouve f=-2 il applique freq pour avoir la feuille
+                                                 
+        else:
+                    #labels are independant
+                    if abs(SumOfCovariance)<= threshold: 
+#                        print('Single DT')
+                        #***************** BR DT *********************
+                        try:
+                            
+                            classifier=self.BR_DT(D[:,0:Attr], np.array(D[:,Attr:]))
+                            labels_Leaf=classifier                            
+                            fbest=-1
+                        except ValueError: 
+                            return                                        
+                    else: 
+                        #labels are dependant                   
+#                        print('find bestsplit(D)')
+                        Qbest=380000 #initialization just for the first f
+                        f=0
+                        fbest=-99
+                       
+                        while f<Attr: #for each feature f test
+                            i=0
+                            res=[]
+                            
+#                            print("Part 1: Find Best cut for the feature "+str(f))
+                            while i<D.shape[0]: #if f is numerical attribute        
+                                res.append(self.isanumber(D[i,f]))
+                                i=i+1
+                               
+                            if np.any(res=='False'):
+                                ###### Not yet functional #####
+#                                    print("not numeric Split D into child nodes fDig according to values of f eg: yes/No")
+                                    left,right= self.Split_categ(f,D)                
+                            else:
+#                                    print("FindBestCut for this attribute")
+                                    outputsFindBestCut=self.FindBestCut_opti(D, f) ### on supprime Qbest  
+                                    
+                            Cut_Best_f= outputsFindBestCut['value']
+                            #print("Cut_Best "+str(Cut_Best))
+                            if Cut_Best_f== -99:
+                                #Cut_Best_f== -99 means that no cut is good for the current attribute and we should consider another attribute for splitting, if all attribute were tested and no one is good for split, we consider the current node as a leaf
+                                #f=-2 means that we should apply the function freq to annotate the leaf (see split_f ())
+                               
+                                
+#                                print("attribute to be  ignored because all cuts are not interesting, so evaluation of another attribute") if all attributes are not interesting do no split so we should calculate the freq
+                                if f== Attr and fbest==-99: #voir d.shape-1 !! garder que D.shape[1]-1
+                                    fbest=-2
+                                    labels_Leaf=self.Freq_LP(D)# je vais calculer freq dans split_f *******CHANGE
+                                
+                            else:
+                            #split D according to Cut_best, calculates the Q and do that for each feature f   
+#                                print("Part 2:  Evaluation of quality split if i use the feature "+str(f)+" with cut "+str(Cut_Best_f))
+                                Q=outputsFindBestCut['qualite_split']
+#                                print("quality"+ str(Q))
+                                child_nodes=outputsFindBestCut['child_LR']
+                                if Q <Qbest: 
+                                    Qbest=Q  #Qbest: is the best quality of split reached at this level, Q: is the quality of split of the current feature f.
+                                    fbest=outputsFindBestCut['index']
+                                    Di_best=child_nodes
+                                    Cut_Best=Cut_Best_f
+                                    
+                            f=f+1
+        return {'best_feature':fbest,'cut_best':Cut_Best, 'childes_nodes':Di_best,'labels_Leaf':labels_Leaf} 
+        
+    def FindBestCut_opti(self, D, f):
+        minNoObj=self.minNoObj
+        Attr=self.Attr
+#        print('sort D according to f in ascending manner')
+        index_f=np.argsort(D[:,f]) #index of instances according to f in ascending manner
+        f_sorted=D[index_f,f] #f sorted according to index
+        #D_sorted=D[index_f,:] # D sorted according to index 
+#        print('find all possible cut points Cut')
+        [Cuts,indexes] = np.unique(f_sorted, return_index=True) #recuperate the possible unique cuts points without sort 
+        cut=0     
+        Qbest=38000
+        Cut_best=-99
+        left_best=[]
+        right_best=[]
+        while cut < Cuts.shape[0]:       
+#             print("cut= %d " %cut)
+#             print('split D into two child nodes D1 and D2 according to value of cut')        
+             left, right,index_left,index_right=self.Split(f, Cuts[cut], D) 
+             D1=left
+             D2=right      
+             #we should check that each child node has the number of instance > min (Change_here_idea!!), 
+             #otherwise, the attribute f will be ignored (if all his cutpoints does'nt respect this condition we pass to another attribute)
+             #if there is no attribute to consider, fbest= will be returned as -1 and so the function find best attribute will pass to another attribute and ignore the current one     
+             if not D1 or not D2: # Check if list is empty
+#                 print( "Empty" )
+                 cut=cut+1 
+             else:
+#                 print( "Not empty" )
+                 #calculate the quality of this split.
+                 child_nodes=[D1,D2]                         
+                 si1=np.array(D1).shape[0]
+                 si2=np.array(D2).shape[0]                          
+                 if si1 >= minNoObj and si2 >= minNoObj : 
+                    
+                     [SumOfCovariance1,MatrixOfCovariance1,SumOfVariance1,VarianceElements1]=self.Covariance(np.array(D1)[:,Attr:])
+                     [SumOfCovariance2,MatrixOfCovariance2,SumOfVariance2,VarianceElements2]=self.Covariance(np.array(D2)[:,Attr:])
+                     Q1=min([SumOfCovariance1,SumOfVariance1])
+                     Q2=min([SumOfCovariance2,SumOfVariance2])
+                     Qchild_nodes=[Q1,Q2]
+                     #For each node calculate the quality value
+                     Q=0
+                     D_size = np.array(D).shape[0] #the original dataset
+                     for i in range(len(child_nodes)):
+                         D_i_size = np.array(child_nodes[i]).shape[0]
+                         Q += (D_i_size/D_size)*Qchild_nodes[i]                     
+                     #print("value of Q of child_nodes Cut %d"% Q) 
+                     #print("Qbest/ Ancien %d"% Qbest)
+                     if Q<Qbest: 
+                         Qbest=Q
+                         Cut_best=Cuts[cut] 
+                         left_best=left
+                         right_best=right
+                     cut=cut+1
+            
+                 else:
+##                     print("Cut point to ignored because the number of instances in child node < min")
+                     cut=cut+1 
+                            # to exit the loop and try another cut, since one of childes nodes does'nt have ennough instances                                  
+        return {'index':f,'value':Cut_best,'child_LR':[left_best,right_best], 'qualite_split':Qbest}        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
