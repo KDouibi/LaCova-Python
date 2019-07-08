@@ -33,13 +33,12 @@ class Lacova(object):
         Di_best=[]
         labels_Leaf=[]
         
-        #calculate the covariance matrix of D to decide if we make another split or apply single DT if the labels are indepandant or make the node as terminal(leaf)
+        #compute the covariance matrix of D to decide if we make another split, apply single DT if the labels are indepandant or make the node as terminal(leaf)
         [SumOfCovariance,MatrixOfCovariance,SumOfVariance,VarianceElements]=self.Covariance(D[:,Attr:])
         if SumOfVariance==0 or len(D)<minNoObj:#labels are independant
                      #return leaf with relative frequencies of labels/stop growing the tree
-                     #print('return leaf with relative labels /SumOfVariance==0 or len(D)<minNoObj or best_feat== -1')
-                     #labels_Leaf=[]#self.Freq(D)#va etre faite dans split_f function                 
-                    fbest=-2 #dans la fonction split_f quand il trouve f=-2 il applique freq pour avoir la feuille
+                     #print('return leaf with relative labels /SumOfVariance==0 or len(D)<minNoObj or best_feat== -1')                              
+                    fbest=-2 #refer to split_f(), if fbest=-2 we make the node as leaf.
                                                  
         else:
                     #labels are independant
@@ -75,7 +74,7 @@ class Lacova(object):
                                     left,right= self.Split_categ(f,D)                
                             else:
                                     #print("FindBestCut for this attribute")
-                                    outputsFindBestCut=self.FindBestCut_opti(D, f) ### on supprime Qbest  
+                                    outputsFindBestCut=self.FindBestCut_opti(D, f)  
                                     
                             Cut_Best_f= outputsFindBestCut['value']
                             #print("Cut_Best "+str(Cut_Best))
@@ -84,14 +83,14 @@ class Lacova(object):
                                 #f=-2 means that we should apply the function freq to annotate the leaf (see split_f ())
                                
                                 
-                                #print("attribute to be  ignored because all cuts are not interesting, so evaluation of another attribute") if all attributes are not interesting do no split so we should calculate the freq
-                                if f== Attr and fbest==-99: #voir d.shape-1 !! garder que D.shape[1]-1
+                                #print("attribute to be ignored because all cuts were not interesting, so evaluation of another attribute") if all attributes are not interesting do no split so we should calculate the freq
+                                if f== Attr and fbest==-99: 
                                     fbest=-2
-                                    labels_Leaf=self.Freq_LP(D)# je vais calculer freq dans split_f *******CHANGE
+                                    labels_Leaf=self.Freq_LP(D)
                                 
                             else:
-                            #split D according to Cut_best, calculates the Q and do that for each feature f   
-                                #print("Part 2:  Evaluation of quality split if i use the feature "+str(f)+" with cut "+str(Cut_Best_f))
+                            #split D according to Cut_best, computes the Q and do that for each feature f   
+                                #print("Part 2: Evaluation of quality split if i use the feature "+str(f)+" with cut "+str(Cut_Best_f))
                                 Q=outputsFindBestCut['qualite_split']
                                 #print("quality"+ str(Q))
                                 child_nodes=outputsFindBestCut['child_LR']
@@ -124,8 +123,8 @@ class Lacova(object):
              left, right,index_left,index_right=self.Split(f, Cuts[cut], D) 
              D1=left
              D2=right      
-             #we should check that each child node has the number of instance > min (Change_here_idea!!), 
-             #otherwise, the attribute f will be ignored (if all his cutpoints does'nt respect this condition we pass to another attribute)
+             #we should check that each child node has the number of instance > min, 
+             #otherwise, the attribute f will be ignored (if all his cutpoints doesn't respect this condition we test another attribute)
              #if there is no attribute to consider, fbest= will be returned as -1 and so the function find best attribute will pass to another attribute and ignore the current one     
              if not D1 or not D2: # Check if list is empty
                  #print( "Empty" )
@@ -161,14 +160,12 @@ class Lacova(object):
                  else:
                      #print("Cut point to ignored because the number of instances in child node < min")
                      cut=cut+1 
-                     # to exit the loop and try another cut, since one of childes nodes does'nt have ennough instances                                  
+                     # to exit the loop and try another cut, since one of childes nodes doesn't have ennough instances                                  
         return {'index':f,'value':Cut_best,'child_LR':[left_best,right_best], 'qualite_split':Qbest}   
     #******************************************************************************************************************    
     def Split(self, f, Cut_best, D):
     #split function with indexes
        left, right = list(), list()
-       #je dois récupérer les indexes of instances pour les utiliser dans matrix error et ne pas répéter l'application de BR sur les labels de gauche et à droite
-       #mais directement récupérer les anciens 
        index_left,index_right=[],[]
        for inx,row in enumerate(D):
            if row[f] <= Cut_best:
@@ -180,8 +177,7 @@ class Lacova(object):
                 
        return left, right,index_left,index_right
      #******************************************************************************************************************   
-      # Create child splits for a node or make terminal
-      
+      # Create child splits for a node or make it terminal      
     def split_f(self, node, depth):
         minNoObj=self.minNoObj
         max_depth=self.max_depth
@@ -196,8 +192,7 @@ class Lacova(object):
         ##    	# check for a no split
         if not left or not right:
             sortie=self.Freq_LP(np.array(left + right))
-            node['left'] = node['right']=sortie# important la classe la plus fréquente si je ne peux pas diviser encore ,
-                                                                             #le noeud actuel sera une feuille et je fais la fréquence             
+            node['left'] = node['right']=sortie            
             return 
         
     	# check for max depth
@@ -242,35 +237,28 @@ class Lacova(object):
        # Label = classifier.predict(X_test)    
         return LP_classif      
   #******************************************************************************************************************    
+  # Make a prediction with a decision tree 
   def predict(self, X_test):
         y_pred=[]
         root=self.root
-        if root['best_feature'] == -1: #when we can't split at the begining
-           #************ A fixer **********************************
-            #When the root contains BR DT classifier, use the predict function 
-            #works  just if the root is -1 but if i have mixture tree (Lacova +BR DT ), seecondition -1 in  recurse tree 
-            #c'est le cas où dès le départ les labels sont indépendants car sumofCov< threshold donc directment j'applique BR sur D, mais dans
-            #le cas où on dans les feuilles BR et d'autre LP/freq, celà va etre prédit dans la fonction recurse tree.
-            #print('A')
+        if root['best_feature'] == -1: #when we can't split at the begining (root node)
             
             for t1 in (X_test):
-                 y_pred_t=root['labels_Leaf'].predict(t1.reshape(1, -1)) ## error to fix when sumcov >thresholds
+                 y_pred_t=root['labels_Leaf'].predict(t1.reshape(1, -1))
                  y_pred1=y_pred_t.toarray()#To pass from CSC matrix to array                 
                  pred=y_pred1[0,:].tolist()
                  y_pred.append(pred)                
         else:
-            #pour parcourir l'arbre
-            #print('B')
-            
+            #to browse the tree
             for t in (X_test):
                 pred=self.recurse_tree_LP(root, t)                
                 #y_pred.append(pred[0])
-                y_pred.append(pred) #best results with this
+                y_pred.append(pred)
             return y_pred
-            # Make a prediction with a decision tree 
+            
   #******************************************************************************************************************            
   def recurse_tree(self, node, test):
-        #rajouter la condition quand 
+        
         if node['best_feature'] != -1: 
             if test[node['best_feature']] < node['cut_best']:
             
@@ -286,7 +274,7 @@ class Lacova(object):
                     return node['right']
         else:
             #print('Apply predict of BR DT')
-            #on applique le classifieur BR qui a été stocké lors de l'apprentissage dans node['labels_leaf']
+            #at this level, we apply the BR classifier that was saved during the learning process at node['labels_leaf'].           
             pred_i=node['labels_Leaf'].predict(test.reshape(1, -1) )# i added [] to make 2D array for predict function of BR but i can use also .reshape(1, -1) 
             pred=pred_i.toarray() #### To pass from CSC matrix to dense
             pred=pred[0,:].tolist()          
@@ -294,39 +282,38 @@ class Lacova(object):
   #******************************************************************************************************************   
   # LP on Leaves if labels are dependant
     def recurse_tree_LP(self, node, test):
-        #rajouter la condition quand 
+         
         if node['best_feature'] != -1: 
             if test[node['best_feature']] < node['cut_best']:          
                 if isinstance(node['left'], dict):
                         return self.recurse_tree_LP(node['left'], test)
-                else:#modifier pour s'adapter avec LP dans les feuilles
-                    #on applique le classifieur LP qui a été stocké lors de l'apprentissage dans node['left']
+                else:
+                    #at this level, we apply the LP classifier that was saved during the learning process at node['left']               
                     pred_ii=node['left'].predict(test.reshape(1, -1) )# i added [] to make 2D array for predict function of BR but i can use also .reshape(1, -1) 
                     pred_l=pred_ii.toarray() #### To pass from CSC matrix to dense
-                    pred_l=pred_l[0,:]# pour sortir de [[[]]] créer par reshape
+                    pred_l=pred_l[0,:]
                     return pred_l    
             else:
-                #print('E')
+                
                 if isinstance(node['right'], dict):
                         return self.recurse_tree_LP(node['right'], test)
-                else:#modifier pour s'adapter avec LP dans les feuilles 
-                    #on applique le classifieur LP qui a été stocké lors de l'apprentissage dans node['right']
+                else:
+                    #at this level, we apply the LP classifier that was saved during the learning process at node['right'] 
                     pred_i1=node['right'].predict(test.reshape(1, -1) )# i added [] to make 2D array for predict function of BR but i can use also .reshape(1, -1) 
                     pred_r=pred_i1.toarray() #### To pass from CSC matrix to dense
-                    pred_r=pred_r[0,:]# pour sortir de [[[]]] créer par reshape
+                    pred_r=pred_r[0,:]# 
                     return pred_r
         else:
             #print('Apply predict of BR DT')
-            #on applique le classifieur BR qui a été stocké lors de l'apprentissage dans node['labels_leaf']
+            #at this level, we apply the BR classifier that was saved during the learning process at node['labels_leaf']. 
             pred_i=node['labels_Leaf'].predict(test.reshape(1, -1) )# i added [] to make 2D array for predict function of BR but i can use also .reshape(1, -1) 
             pred=pred_i.toarray() #### To pass from CSC matrix to dense
-            pred=pred[0,:]
-                  
+            pred=pred[0,:]                  
             return pred 
   #******************************************************************************************************************   
-  # Print a decision tree
+  # Print a decision tree in the console directly
     def print_tree(self, node, depth=0):
-        #reste a voir l'arbre de lacova comment ils le veulent ?et faire le print selon ca #problème quand les noeuds sont des classifieurs BR DT TO FIX      
+          
             if isinstance(node, dict):
                 if node['best_feature'] == -1:
                     print('[BR DT]')
@@ -336,11 +323,13 @@ class Lacova(object):
                     self.print_tree(node['left'], depth+1)
                     self.print_tree(node['right'], depth+1)
             else:
-                print('%s[%s]' % ((depth*' ', node)))#pour afficher la partie de l'arbre dessiné 
+                print('%s[%s]' % ((depth*' ', node)))
   #******************************************************************************************************************   
-  def DOT_graph_node(self,f, node):
+  # Print a decision tree in a jpg format (2)
+    def DOT_graph_node(self,f, node):
         
-        if isinstance(node, dict) and 'best_feature' in node: #pour s'assurer que c'est un noeud pas une feuille car le dict dans la feuille ne coontient pas best_feature
+        if isinstance(node, dict) and 'best_feature' in node: # test if it is a node not a final leaf
+            
             if node['best_feature'] == -1:
                         print('[BR DT]')
                         return
@@ -356,7 +345,8 @@ class Lacova(object):
             khaloud = '[label ="'+ '\n'.join([str(key)+'='+str(value) for key, value in node.items()]) + '"] \n'            
             f.write(str(id(node)) + khaloud) 
   #******************************************************************************************************************   
-  def DOT_graph_tree(self,node):
+  # Print a decision tree in a jpg format (1)
+    def DOT_graph_tree(self,node):
         fn = 'graph'+ '.dot'
         f = open(fn, 'w')
         f.write('digraph {\n')
@@ -364,19 +354,19 @@ class Lacova(object):
         self.DOT_graph_node(f, node)
         f.write('}\n') 
   #****************************************************************************************************************** 
+#Compute the covariance matrix 
   def Covariance(self,D):
         MatrixOfCovariance= np.cov(D);#Covariance matrix
         VarianceElements=np.diagonal(MatrixOfCovariance)
         SumOfVariance=np.nansum(abs(VarianceElements))# for ina in range(len(VarianceElements)) if np.isnan(VarianceElements[ina]) != True ) #calculates the sum of diagnal which are the variances
-        SumOfCovariance= np.nansum(abs(np.triu(MatrixOfCovariance)))-SumOfVariance #si les valeurs sont différents de nan
+        SumOfCovariance= np.nansum(abs(np.triu(MatrixOfCovariance)))-SumOfVariance #if values are  !=nan
         return SumOfCovariance, MatrixOfCovariance, SumOfVariance, VarianceElements 
   #****************************************************************************************************************** 
   def BR_DT(self,D,L):
-        #DT usng BR of skmultilearn, to be compared with single_DT created manually in terme of predictions      
+        #DT using BR of skmultilearn   
         classifier = BinaryRelevance(classifier=DecisionTreeClassifier())
         # train
-        classifier.fit(D, L) 
-        ### idea: predictions = classifier.predict_proba(X_test)
+        classifier.fit(D, L)         
         return classifier 
   #****************************************************************************************************************** 
   def isanumber(self, a): 
@@ -404,7 +394,8 @@ class Lacova(object):
                
         return left,right  
    #******************************************************************************************************************     
-   def Threshold_lacova(D):
+   #Estimate the covariance threshold.
+    def Threshold_lacova(D):
         #D are labels
         somme1=0
         somme2=0
