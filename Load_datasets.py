@@ -10,14 +10,15 @@ from operator import itemgetter
 def Yeast():
     file_name="yeast_ss_attribut2.txt"
     Yeast_dataset=np.loadtxt(file_name)
-    X=Yeast_dataset[:,0:103]# X predictors variables i kept just 150instances to minimize the time of response
+    X=Yeast_dataset[:,0:103]# X predictors variables
     Y=Yeast_dataset[:,103:]#Y outcomes variables
     NLabels=Y.shape[1]
     #Threshold_lacova=0.26
     return X,Y,NLabels
     
     
-def SimpleCrossts=n_splits, random_state=0)
+def SimpleCross(X,Y,n_splits)
+    kf= KFold(n_splits=n_splits, random_state=0)
     #Données
     X_train,XTr_ind=[],[]
     X_test,XTst_ind=[],[]
