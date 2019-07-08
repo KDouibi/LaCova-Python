@@ -27,7 +27,7 @@ while dep <= Max_depth:
     #**************************************************************************
     Result_it=[]
     print('depth',dep)
-    for it in range(len(X_train)): #10CV:
+    for it in range(len(X_train)):
         print('crosV',it)
     #Lacova *************************************************************
     #learning
@@ -37,15 +37,15 @@ while dep <= Max_depth:
         lacova.fit(X_train[it], Y_train[it])      
         end_lacovaL = time.time()    
         time_lacovaL=end_lacovaL- start_lacovaL 
-    #***test**
+    #***testing**
         print('testing')
         start_lacovaT = time.time()
         Y_pred=lacova.predict(X_test[it])
         end_lacovaT = time.time()
         
         time_lacovaT=end_lacovaT-start_lacovaT
-    # afaire remplacer la sortie de predict function par np.array(pred)
-        Accuracy=accuracy_score(Y_test[it],np.array(Y_pred)) #Subset accuray in multi-label
+    
+        Accuracy=accuracy_score(Y_test[it],np.array(Y_pred)) #Subset accuracy in multi-label
         Hamming_Loss=hamming_loss(Y_test[it],np.array(Y_pred))
         jaccard_similarity=jaccard_similarity_score(Y_test[it],np.array(Y_pred) )
     
@@ -64,13 +64,13 @@ with open('LaCova_Yeast', 'w') as f:
 #************************************************************************************************************************
 #IDEA
 #1
-#pour ouvrir json dict :resultats  
+#To open Json dict to check results:
 #with open('résultats_test_BR_CC_Lacova', 'r') as f:
 #    sortie = json.load(f)    
 #2
-##Pour générer l'arbre en png directement from dot sans passer par cmd
+##To generate the decision tree directly in png/jpg from  dot without using cmd command:
 #from subprocess import check_call
-#check_call(['dot','-Tpng','graph2.dot','-o','OutputFile_LacovaMMPICC11.png'])    
+#check_call(['dot','-Tpng','graph.dot','-o','OutputFile_LaCovaDT.png'])    
     
     
     
