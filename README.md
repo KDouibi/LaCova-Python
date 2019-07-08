@@ -8,12 +8,12 @@ its main idea is to measure label dependence while growing the tree.
 
 
 [1] 
-@InProceedings{al2014lacova,
-  author       = {R. Al-Otaibi and M. Kull and P. Flach},
-  title        = {Lacova: a tree-based multi-label classifier using label covariance as splitting criterion},
-  booktitle    = {13th International Conference on Machine Learning and Applications (ICMLA)},
-  year         = {2014},
-  pages        = {74--79},
-  organization = {IEEE},
+@InProceedings{
+  <br/>author       = {R. Al-Otaibi and M. Kull and P. Flach}, 
+  <br/>title        = {Lacova: a tree-based multi-label classifier using label covariance as splitting criterion},
+  <br/>booktitle    = {13th International Conference on Machine Learning and Applications (ICMLA)},
+  <br/>year         = {2014},
+  <br/>pages        = {74--79},
+  <br/>organization = {IEEE},
 }
 
