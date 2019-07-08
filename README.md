@@ -6,14 +6,13 @@ its main idea is to measure label dependence while growing the tree.
 
 
 
-
-[1] 
-@InProceedings{
+References:
+[1] @InProceedings{
   <br/>author       = {R. Al-Otaibi and M. Kull and P. Flach}, 
   <br/>title        = {Lacova: a tree-based multi-label classifier using label covariance as splitting criterion},
   <br/>booktitle    = {13th International Conference on Machine Learning and Applications (ICMLA)},
   <br/>year         = {2014},
   <br/>pages        = {74--79},
-  <br/>organization = {IEEE},
-}
+  <br/>organization = {IEEE},}
 
+[2] https://machinelearningmastery.com/implement-decision-tree-algorithm-scratch-python/#comment-423138
