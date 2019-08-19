@@ -15,4 +15,4 @@ References:
   <br/>pages        = {74--79},
   <br/>organization = {IEEE},}
 
-[2] https://machinelearningmastery.com/implement-decision-tree-algorithm-scratch-python/#comment-423138
+[2] Helpful tutorial: https://machinelearningmastery.com/implement-decision-tree-algorithm-scratch-python/#comment-423138
