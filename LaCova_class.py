@@ -229,7 +229,7 @@ class Lacova(object):
     def Freq_LP(self, D):       
         a=self.Attr
         # initialize Label Powerset multi-label classifier
-        # with a gaussian naive bayes base classifier
+        # with a gaussian DT base classifier
         classifier = LabelPowerset(DecisionTreeClassifier())#min_samples_split=self.minNoObj
         # train
         LP_classif=classifier.fit(D[:,0:a], D[:,a:])
